@@ -2400,7 +2400,7 @@ TextWord *TextWordList::get(int idx)
 // TextPage
 //------------------------------------------------------------------------
 
-TextPage::TextPage(bool rawOrderA, bool discardDiagA, bool discardWfillA)
+TextPage::TextPage(bool rawOrderA, bool discardDiagA, bool discardWfillA, bool discardInvisA)
 {
     int rot;
 
@@ -2408,6 +2408,7 @@ TextPage::TextPage(bool rawOrderA, bool discardDiagA, bool discardWfillA)
     rawOrder = rawOrderA;
     discardDiag = discardDiagA;
     discardWfill = discardWfillA;
+    discardInvis = discardInvisA;
     curWord = nullptr;
     charPos = 0;
     curFont = nullptr;
@@ -2432,6 +2433,7 @@ TextPage::TextPage(bool rawOrderA, bool discardDiagA, bool discardWfillA)
     mergeCombining = true;
     diagonal = false;
     whiteFill = false;
+    invisible = false;
 }
 
 TextPage::~TextPage()
@@ -2526,6 +2528,7 @@ void TextPage::clear()
 
     diagonal = false;
     whiteFill = false;
+    invisible = false;
     curWord = nullptr;
     charPos = 0;
     curFont = nullptr;
@@ -2715,6 +2718,14 @@ void TextPage::addChar(const GfxState *state, double x, double y, double dx, dou
         whiteFill = false;
     }
 
+    // check invisible
+    if((state->getRender() == 3) || (state->getFillOpacity() < 0.001)) {
+        invisible = true;
+    }
+    else {
+        invisible = false;
+    }
+
     state->getFontTransMat(&mat.m[0], &mat.m[1], &mat.m[2], &mat.m[3]);
     mat.m[0] *= state->getHorizScaling();
     mat.m[1] *= state->getHorizScaling();
@@ -2776,13 +2787,14 @@ void TextPage::addChar(const GfxState *state, double x, double y, double dx, dou
             beginWord(state);
         }
 
-        // Identify text render mode 3
-        if(state->getRender() == 3) {
-            printf("Text written using render mode 3\n");
-        }
-
         //throw away whitefilled characters
         if(discardWfill && whiteFill) {
+            charPos += nBytes;
+            return;
+        }
+
+        //throw away invisible characters
+        if(discardInvis && invisible) {
             charPos += nBytes;
             return;
         }
@@ -5551,7 +5563,7 @@ static void TextOutputDev_outputToFile(void *stream, const char *text, int len)
     fwrite(text, 1, len, (FILE *)stream);
 }
 
-TextOutputDev::TextOutputDev(const char *fileName, bool physLayoutA, double fixedPitchA, bool rawOrderA, bool append, bool discardDiagA, bool discardWfillA)
+TextOutputDev::TextOutputDev(const char *fileName, bool physLayoutA, double fixedPitchA, bool rawOrderA, bool append, bool discardDiagA, bool discardWfillA, bool discardInvisA)
 {
     text = nullptr;
     physLayout = physLayoutA;
@@ -5559,6 +5571,7 @@ TextOutputDev::TextOutputDev(const char *fileName, bool physLayoutA, double fixe
     rawOrder = rawOrderA;
     discardDiag = discardDiagA;
     discardWfill = discardWfillA;
+    discardInvis = discardInvisA;
     doHTML = false;
     textEOL = defaultEndOfLine();
     textPageBreaks = true;
@@ -5587,11 +5600,11 @@ TextOutputDev::TextOutputDev(const char *fileName, bool physLayoutA, double fixe
     }
 
     // set up text object
-    text = new TextPage(rawOrderA, discardDiagA, discardWfillA);
+    text = new TextPage(rawOrderA, discardDiagA, discardWfillA, discardInvisA);
     actualText = new ActualText(text);
 }
 
-TextOutputDev::TextOutputDev(TextOutputFunc func, void *stream, bool physLayoutA, double fixedPitchA, bool rawOrderA, bool discardDiagA, bool discardWfillA)
+TextOutputDev::TextOutputDev(TextOutputFunc func, void *stream, bool physLayoutA, double fixedPitchA, bool rawOrderA, bool discardDiagA, bool discardWfillA, bool discardInvisA)
 {
     outputFunc = func;
     outputStream = stream;
@@ -5601,7 +5614,7 @@ TextOutputDev::TextOutputDev(TextOutputFunc func, void *stream, bool physLayoutA
     rawOrder = rawOrderA;
     discardDiag = discardDiagA;
     doHTML = false;
-    text = new TextPage(rawOrderA, discardDiagA, discardWfillA);
+    text = new TextPage(rawOrderA, discardDiagA, discardWfillA, discardInvisA);
     actualText = new ActualText(text);
     textEOL = defaultEndOfLine();
     textPageBreaks = true;
@@ -5859,7 +5872,7 @@ TextPage *TextOutputDev::takeText()
     TextPage *ret;
 
     ret = text;
-    text = new TextPage(rawOrder, discardDiag, discardWfill);
+    text = new TextPage(rawOrder, discardDiag, discardWfill, discardInvis);
     return ret;
 }
 

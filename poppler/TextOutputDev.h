@@ -556,7 +556,7 @@ class POPPLER_PRIVATE_EXPORT TextPage
 {
 public:
     // Constructor.
-    TextPage(bool rawOrderA, bool discardDiagA = false, bool discardWfillA = false);
+    TextPage(bool rawOrderA, bool discardDiagA = false, bool discardWfillA = false, bool discardInvisA = false);
 
     TextPage(const TextPage &) = delete;
     TextPage &operator=(const TextPage &) = delete;
@@ -675,6 +675,7 @@ private:
     bool rawOrder; // keep text in content stream order
     bool discardDiag; // discard diagonal text
     bool discardWfill; // discard chars with white RGB fill
+    bool discardInvis; // discard chars using render mode 3 or low fillOpacity
     bool mergeCombining; // merge when combining and base characters
                          // are drawn on top of each other
 
@@ -690,6 +691,7 @@ private:
                           //   previous char
     bool diagonal; // whether the current text is diagonal
     bool whiteFill; // whether the current text uses white fill RGB 
+    bool invisible; // whether the current text uses render mode 3 or low opacity
 
     TextPool *pools[4]; // a "pool" of TextWords for each rotation
     TextFlow *flows; // linked list of flows
@@ -764,14 +766,14 @@ public:
     // is maintained.  If <rawOrder> is true, the text is kept in
     // content stream order.  If <discardDiag> is true, diagonal text
     // is removed from output.
-    TextOutputDev(const char *fileName, bool physLayoutA, double fixedPitchA, bool rawOrderA, bool append, bool discardDiagA = false, bool discardWfillA = false);
+    TextOutputDev(const char *fileName, bool physLayoutA, double fixedPitchA, bool rawOrderA, bool append, bool discardDiagA = false, bool discardWfillA = false, bool discardInvisA = false);
 
     // Create a TextOutputDev which will write to a generic stream.  If
     // <physLayoutA> is true, the original physical layout of the text
     // is maintained.  If <rawOrder> is true, the text is kept in
     // content stream order.  If <discardDiag> is true, diagonal text
     // is removed from output.
-    TextOutputDev(TextOutputFunc func, void *stream, bool physLayoutA, double fixedPitchA, bool rawOrderA, bool discardDiagA = false, bool discardWfillA = false);
+    TextOutputDev(TextOutputFunc func, void *stream, bool physLayoutA, double fixedPitchA, bool rawOrderA, bool discardDiagA = false, bool discardWfillA = false, bool discardInvisA = false);
 
     // Destructor.
     ~TextOutputDev() override;
@@ -904,6 +906,7 @@ private:
                       // 0, 90, 180, or 270 degree axes, is discarded. This is useful
                       // to skip watermarks drawn on top of body text, etc.
     bool discardWfill;
+    bool discardInvis;
     bool doHTML; // extra processing for HTML conversion
     bool ok; // set up ok?
     bool textPageBreaks; // insert end-of-page markers?
