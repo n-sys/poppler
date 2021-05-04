@@ -2400,13 +2400,14 @@ TextWord *TextWordList::get(int idx)
 // TextPage
 //------------------------------------------------------------------------
 
-TextPage::TextPage(bool rawOrderA, bool discardDiagA)
+TextPage::TextPage(bool rawOrderA, bool discardDiagA, bool discardWfillA)
 {
     int rot;
 
     refCnt = 1;
     rawOrder = rawOrderA;
     discardDiag = discardDiagA;
+    discardWfill = discardWfillA;
     curWord = nullptr;
     charPos = 0;
     curFont = nullptr;
@@ -2430,6 +2431,7 @@ TextPage::TextPage(bool rawOrderA, bool discardDiagA)
     links = new std::vector<TextLink *>();
     mergeCombining = true;
     diagonal = false;
+    whiteFill = false;
 }
 
 TextPage::~TextPage()
@@ -2523,6 +2525,7 @@ void TextPage::clear()
     delete links;
 
     diagonal = false;
+    whiteFill = false;
     curWord = nullptr;
     charPos = 0;
     curFont = nullptr;
@@ -2663,6 +2666,7 @@ void TextPage::addChar(const GfxState *state, double x, double y, double dx, dou
     int i;
     int wMode;
     Matrix mat;
+    GfxRGB fillRgb;
 
     // subtract char and word spacing from the dx,dy values
     sp = state->getCharSpace();
@@ -2700,6 +2704,15 @@ void TextPage::addChar(const GfxState *state, double x, double y, double dx, dou
         // ignore null characters
         charPos += nBytes;
         return;
+    }
+
+    // check whiteFill
+    state->getFillRGB(&fillRgb);
+    if (fillRgb.r == 65536 && fillRgb.g == 65536 && fillRgb.b == 65536) {
+        whiteFill = true;
+    }
+    else {
+        whiteFill = false;
     }
 
     state->getFontTransMat(&mat.m[0], &mat.m[1], &mat.m[2], &mat.m[3]);
@@ -2761,6 +2774,17 @@ void TextPage::addChar(const GfxState *state, double x, double y, double dx, dou
         // start a new word if needed
         if (!curWord) {
             beginWord(state);
+        }
+
+        // Identify text render mode 3
+        if(state->getRender() == 3) {
+            printf("Text written using render mode 3\n");
+        }
+
+        //throw away whitefilled characters
+        if(discardWfill && whiteFill) {
+            charPos += nBytes;
+            return;
         }
 
         // throw away diagonal chars
@@ -5527,13 +5551,14 @@ static void TextOutputDev_outputToFile(void *stream, const char *text, int len)
     fwrite(text, 1, len, (FILE *)stream);
 }
 
-TextOutputDev::TextOutputDev(const char *fileName, bool physLayoutA, double fixedPitchA, bool rawOrderA, bool append, bool discardDiagA)
+TextOutputDev::TextOutputDev(const char *fileName, bool physLayoutA, double fixedPitchA, bool rawOrderA, bool append, bool discardDiagA, bool discardWfillA)
 {
     text = nullptr;
     physLayout = physLayoutA;
     fixedPitch = physLayout ? fixedPitchA : 0;
     rawOrder = rawOrderA;
     discardDiag = discardDiagA;
+    discardWfill = discardWfillA;
     doHTML = false;
     textEOL = defaultEndOfLine();
     textPageBreaks = true;
@@ -5562,11 +5587,11 @@ TextOutputDev::TextOutputDev(const char *fileName, bool physLayoutA, double fixe
     }
 
     // set up text object
-    text = new TextPage(rawOrderA, discardDiagA);
+    text = new TextPage(rawOrderA, discardDiagA, discardWfillA);
     actualText = new ActualText(text);
 }
 
-TextOutputDev::TextOutputDev(TextOutputFunc func, void *stream, bool physLayoutA, double fixedPitchA, bool rawOrderA, bool discardDiagA)
+TextOutputDev::TextOutputDev(TextOutputFunc func, void *stream, bool physLayoutA, double fixedPitchA, bool rawOrderA, bool discardDiagA, bool discardWfillA)
 {
     outputFunc = func;
     outputStream = stream;
@@ -5576,7 +5601,7 @@ TextOutputDev::TextOutputDev(TextOutputFunc func, void *stream, bool physLayoutA
     rawOrder = rawOrderA;
     discardDiag = discardDiagA;
     doHTML = false;
-    text = new TextPage(rawOrderA, discardDiagA);
+    text = new TextPage(rawOrderA, discardDiagA, discardWfillA);
     actualText = new ActualText(text);
     textEOL = defaultEndOfLine();
     textPageBreaks = true;
@@ -5834,7 +5859,7 @@ TextPage *TextOutputDev::takeText()
     TextPage *ret;
 
     ret = text;
-    text = new TextPage(rawOrder, discardDiag);
+    text = new TextPage(rawOrder, discardDiag, discardWfill);
     return ret;
 }
 
