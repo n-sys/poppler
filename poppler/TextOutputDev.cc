@@ -2400,7 +2400,7 @@ TextWord *TextWordList::get(int idx)
 // TextPage
 //------------------------------------------------------------------------
 
-TextPage::TextPage(bool rawOrderA, bool discardDiagA, bool discardWfillA, bool discardInvisA)
+TextPage::TextPage(bool rawOrderA, bool discardDiagA, bool discardWfillA, bool discardInvisA, bool discardNonUniA)
 {
     int rot;
 
@@ -2409,6 +2409,7 @@ TextPage::TextPage(bool rawOrderA, bool discardDiagA, bool discardWfillA, bool d
     discardDiag = discardDiagA;
     discardWfill = discardWfillA;
     discardInvis = discardInvisA;
+    discardNonUni = discardNonUniA;
     curWord = nullptr;
     charPos = 0;
     curFont = nullptr;
@@ -2670,6 +2671,8 @@ void TextPage::addChar(const GfxState *state, double x, double y, double dx, dou
     int wMode;
     Matrix mat;
     GfxRGB fillRgb;
+    GfxFont *gfxFont = nullptr;
+    Ref embId;
 
     // subtract char and word spacing from the dx,dy values
     sp = state->getCharSpace();
@@ -2716,6 +2719,16 @@ void TextPage::addChar(const GfxState *state, double x, double y, double dx, dou
     }
     else {
         whiteFill = false;
+    }
+
+    gfxFont = state->getFont();
+    // if we have an embedded font, and its a subset of characters, and there isn't a ToUnicode Map
+    // then there isn't a way to get back to unicode short of reverse engineering the font.
+    if(gfxFont->getEmbeddedFontID(&embId) && gfxFont->isSubset() && !gfxFont->hasToUnicodeCMap()) {
+        nonunicode = true;
+    }
+    else {
+        nonunicode = false;
     }
 
     // check invisible
@@ -2795,6 +2808,12 @@ void TextPage::addChar(const GfxState *state, double x, double y, double dx, dou
 
         //throw away invisible characters
         if(discardInvis && invisible) {
+            charPos += nBytes;
+            return;
+        }
+
+        //throw away nonunicode characters
+        if(discardNonUni && nonunicode) {
             charPos += nBytes;
             return;
         }
@@ -5563,7 +5582,7 @@ static void TextOutputDev_outputToFile(void *stream, const char *text, int len)
     fwrite(text, 1, len, (FILE *)stream);
 }
 
-TextOutputDev::TextOutputDev(const char *fileName, bool physLayoutA, double fixedPitchA, bool rawOrderA, bool append, bool discardDiagA, bool discardWfillA, bool discardInvisA)
+TextOutputDev::TextOutputDev(const char *fileName, bool physLayoutA, double fixedPitchA, bool rawOrderA, bool append, bool discardDiagA, bool discardWfillA, bool discardInvisA, bool discardNonUniA)
 {
     text = nullptr;
     physLayout = physLayoutA;
@@ -5572,6 +5591,7 @@ TextOutputDev::TextOutputDev(const char *fileName, bool physLayoutA, double fixe
     discardDiag = discardDiagA;
     discardWfill = discardWfillA;
     discardInvis = discardInvisA;
+    discardNonUni = discardNonUniA;
     doHTML = false;
     textEOL = defaultEndOfLine();
     textPageBreaks = true;
@@ -5600,11 +5620,11 @@ TextOutputDev::TextOutputDev(const char *fileName, bool physLayoutA, double fixe
     }
 
     // set up text object
-    text = new TextPage(rawOrderA, discardDiagA, discardWfillA, discardInvisA);
+    text = new TextPage(rawOrderA, discardDiagA, discardWfillA, discardInvisA, discardNonUniA);
     actualText = new ActualText(text);
 }
 
-TextOutputDev::TextOutputDev(TextOutputFunc func, void *stream, bool physLayoutA, double fixedPitchA, bool rawOrderA, bool discardDiagA, bool discardWfillA, bool discardInvisA)
+TextOutputDev::TextOutputDev(TextOutputFunc func, void *stream, bool physLayoutA, double fixedPitchA, bool rawOrderA, bool discardDiagA, bool discardWfillA, bool discardInvisA, bool discardNonUniA)
 {
     outputFunc = func;
     outputStream = stream;
@@ -5614,7 +5634,7 @@ TextOutputDev::TextOutputDev(TextOutputFunc func, void *stream, bool physLayoutA
     rawOrder = rawOrderA;
     discardDiag = discardDiagA;
     doHTML = false;
-    text = new TextPage(rawOrderA, discardDiagA, discardWfillA, discardInvisA);
+    text = new TextPage(rawOrderA, discardDiagA, discardWfillA, discardInvisA, discardNonUniA);
     actualText = new ActualText(text);
     textEOL = defaultEndOfLine();
     textPageBreaks = true;

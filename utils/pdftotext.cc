@@ -89,6 +89,7 @@ static bool rawOrder = false;
 static bool discardDiag = false;
 static bool discardWfill = false;
 static bool discardInvis = false;
+static bool discardNonUni = false;
 static bool htmlMeta = false;
 static char textEncName[128] = "";
 static char textEOLStr[16] = "";
@@ -113,6 +114,7 @@ static const ArgDesc argDesc[] = { { "-f", argInt, &firstPage, 0, "first page to
                                    { "-nodiag", argFlag, &discardDiag, 0, "discard diagonal text" },
                                    { "-nowhitefill", argFlag, &discardWfill, 0, "discard characters drawn using white RGB fill" },
                                    { "-noinvisible", argFlag, &discardInvis, 0, "discard characters drawn using render mode 3 or fillOpacity alpha < .001" },
+                                   { "-nononunicode", argFlag, &discardNonUni, 0, "discard characters using a non Unicode encoding" },
                                    { "-htmlmeta", argFlag, &htmlMeta, 0, "generate a simple HTML file, including the meta information" },
                                    { "-enc", argString, textEncName, sizeof(textEncName), "output text encoding name" },
                                    { "-listenc", argFlag, &printEnc, 0, "list available encodings" },
@@ -342,7 +344,7 @@ int main(int argc, char *argv[])
 
     // write text file
     if (htmlMeta && bbox) { // htmlMeta && is superfluous but makes gcc happier
-        textOut = new TextOutputDev(nullptr, physLayout, fixedPitch, rawOrder, htmlMeta, discardDiag, discardWfill, discardInvis);
+        textOut = new TextOutputDev(nullptr, physLayout, fixedPitch, rawOrder, htmlMeta, discardDiag, discardWfill, discardInvis, discardNonUni);
 
         if (textOut->isOk()) {
             textOut->setTextEOL(textEOL);
@@ -359,7 +361,7 @@ int main(int argc, char *argv[])
             fclose(f);
         }
     } else {
-        textOut = new TextOutputDev(textFileName->c_str(), physLayout, fixedPitch, rawOrder, htmlMeta, discardDiag, discardWfill, discardInvis);
+        textOut = new TextOutputDev(textFileName->c_str(), physLayout, fixedPitch, rawOrder, htmlMeta, discardDiag, discardWfill, discardInvis, discardNonUni);
         if (textOut->isOk()) {
             textOut->setTextEOL(textEOL);
             if (noPageBreaks) {
