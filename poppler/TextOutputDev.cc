@@ -2673,6 +2673,7 @@ void TextPage::addChar(const GfxState *state, double x, double y, double dx, dou
     GfxRGB fillRgb;
     GfxFont *gfxFont = nullptr;
     Ref embId;
+    GfxFontType fontType;
 
     // subtract char and word spacing from the dx,dy values
     sp = state->getCharSpace();
@@ -2722,10 +2723,29 @@ void TextPage::addChar(const GfxState *state, double x, double y, double dx, dou
     }
 
     gfxFont = state->getFont();
-    // if we have an embedded font, and its a subset of characters, and there isn't a ToUnicode Map
-    // then there isn't a way to get back to unicode short of reverse engineering the font.
-    if(gfxFont->getEmbeddedFontID(&embId) && gfxFont->isSubset() && !gfxFont->hasToUnicodeCMap()) {
-        nonunicode = true;
+    fontType = gfxFont->getType();
+
+    if(gfxFont->getEmbeddedFontID(&embId) && gfxFont->isSubset()) {
+        switch (fontType) {
+            case fontType1:
+            case fontType1C:
+            case fontType1COT:
+            nonunicode = (!gfxFont->hasToUnicodeCMap() && (!gfxFont->getHasEncoding() || gfxFont->wasFontHeuristicUsed()));
+            break;
+
+            case fontType3:
+            nonunicode = (!gfxFont->hasToUnicodeCMap() && !gfxFont->getHasEncoding());
+            break;
+
+            case fontTrueType:
+            case fontTrueTypeOT:
+            nonunicode = (!gfxFont->hasToUnicodeCMap() && !gfxFont->getHasEncoding());
+            break;
+
+            default:
+            nonunicode = (!gfxFont->hasToUnicodeCMap());
+            break;
+        }
     }
     else {
         nonunicode = false;

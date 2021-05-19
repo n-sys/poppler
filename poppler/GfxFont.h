@@ -290,6 +290,11 @@ public:
     // Does this font have a toUnicode map?
     bool hasToUnicodeCMap() const { return hasToUnicode; }
 
+    // Was a heuristic used to build the encoding?
+    bool wasFontHeuristicUsed() const { return useFontHeuristic; }
+
+    bool getHasEncoding() const { return hasBaseEncoding; }
+
     // Return the name of the encoding
     GooString *getEncodingName() const { return encodingName; }
 
@@ -326,6 +331,8 @@ protected:
     int refCnt;
     bool ok;
     bool hasToUnicode;
+    bool useFontHeuristic;
+    bool hasBaseEncoding;
     GooString *encodingName;
 };
 

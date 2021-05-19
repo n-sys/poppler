@@ -234,6 +234,8 @@ GfxFont::GfxFont(const char *tagA, Ref idA, const GooString *nameA, GfxFontType 
     refCnt = 1;
     encodingName = new GooString("");
     hasToUnicode = false;
+    useFontHeuristic = false;
+    hasBaseEncoding = false;
 }
 
 GfxFont::~GfxFont()
@@ -1323,6 +1325,7 @@ Gfx8BitFont::Gfx8BitFont(XRef *xref, const char *tagA, Ref idA, GooString *nameA
                                           numeric, hex,
                                           true))) { // do check variants
                     ctu->setMapping((CharCode)code, uBuf, n);
+                    useFontHeuristic = true;
                     continue;
                 }
 
@@ -1418,6 +1421,8 @@ Gfx8BitFont::Gfx8BitFont(XRef *xref, const char *tagA, Ref idA, GooString *nameA
             }
         }
     }
+
+    hasBaseEncoding = hasEncoding;
 
     ok = true;
 }
