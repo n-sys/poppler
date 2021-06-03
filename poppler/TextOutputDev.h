@@ -691,8 +691,6 @@ private:
     bool lastCharOverlap; // set if the last added char overlapped the
                           //   previous char
     bool diagonal; // whether the current text is diagonal
-    bool whiteFill; // whether the current text uses white fill RGB 
-    bool invisible; // whether the current text uses render mode 3 or low opacity
     bool nonunicode; // whether the current text has a unicode mapping
 
     TextPool *pools[4]; // a "pool" of TextWords for each rotation

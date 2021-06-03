@@ -2433,8 +2433,6 @@ TextPage::TextPage(bool rawOrderA, bool discardDiagA, bool discardWfillA, bool d
     links = new std::vector<TextLink *>();
     mergeCombining = true;
     diagonal = false;
-    whiteFill = false;
-    invisible = false;
 }
 
 TextPage::~TextPage()
@@ -2528,8 +2526,6 @@ void TextPage::clear()
     delete links;
 
     diagonal = false;
-    whiteFill = false;
-    invisible = false;
     curWord = nullptr;
     charPos = 0;
     curFont = nullptr;
@@ -2716,10 +2712,19 @@ void TextPage::addChar(const GfxState *state, double x, double y, double dx, dou
     // check whiteFill
     state->getFillRGB(&fillRgb);
     if (fillRgb.r == 65536 && fillRgb.g == 65536 && fillRgb.b == 65536) {
-        whiteFill = true;
+        if(discardWfill) {
+            charPos += nBytes;
+            return;
+        }
     }
-    else {
-        whiteFill = false;
+
+    // check invisible
+    if((state->getRender() == 3) || (state->getFillOpacity() < 0.001)) {
+        //throw away invisible characters
+        if(discardInvis) {
+            charPos += nBytes;
+            return;
+        }
     }
 
     gfxFont = state->getFont();
@@ -2750,13 +2755,11 @@ void TextPage::addChar(const GfxState *state, double x, double y, double dx, dou
     else {
         nonunicode = false;
     }
-
-    // check invisible
-    if((state->getRender() == 3) || (state->getFillOpacity() < 0.001)) {
-        invisible = true;
-    }
-    else {
-        invisible = false;
+    
+    //throw away nonunicode characters
+    if(discardNonUni && nonunicode) {
+        charPos += nBytes;
+        return;
     }
 
     state->getFontTransMat(&mat.m[0], &mat.m[1], &mat.m[2], &mat.m[3]);
@@ -2818,24 +2821,6 @@ void TextPage::addChar(const GfxState *state, double x, double y, double dx, dou
         // start a new word if needed
         if (!curWord) {
             beginWord(state);
-        }
-
-        //throw away whitefilled characters
-        if(discardWfill && whiteFill) {
-            charPos += nBytes;
-            return;
-        }
-
-        //throw away invisible characters
-        if(discardInvis && invisible) {
-            charPos += nBytes;
-            return;
-        }
-
-        //throw away nonunicode characters
-        if(discardNonUni && nonunicode) {
-            charPos += nBytes;
-            return;
         }
 
         // throw away diagonal chars
