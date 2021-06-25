@@ -75,6 +75,7 @@
 #include "Page.h"
 #include "Annot.h"
 #include "UTF.h"
+#include "CharCodeToUnicode.h"
 
 //------------------------------------------------------------------------
 // parameters
@@ -2731,6 +2732,12 @@ void TextPage::addChar(const GfxState *state, double x, double y, double dx, dou
     fontType = gfxFont->getType();
 
     if(gfxFont->getEmbeddedFontID(&embId) && gfxFont->isSubset()) {
+        const CharCodeToUnicode *cMap = gfxFont->getToUnicode();
+        bool identityMapped = false;
+        if (cMap != nullptr) {
+            identityMapped = cMap->isIdentityMapped();
+        }
+
         switch (fontType) {
             case fontType1:
             case fontType1C:
@@ -2745,6 +2752,12 @@ void TextPage::addChar(const GfxState *state, double x, double y, double dx, dou
             case fontTrueType:
             case fontTrueTypeOT:
             nonunicode = (!gfxFont->hasToUnicodeCMap() && !gfxFont->getHasEncoding());
+            break;
+
+            case fontCIDType2:
+            case fontCIDType2OT:
+            // If it has an embedded CID font see if the map isIdentity, if not mapping needs reverse engineering
+            nonunicode = (!identityMapped && !gfxFont->getHasEncoding());
             break;
 
             default:

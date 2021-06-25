@@ -98,6 +98,8 @@ public:
     // code supported by the mapping.
     CharCode getLength() const { return mapLen; }
 
+    bool isIdentityMapped() const { return isIdentity; }
+
 private:
     bool parseCMap1(int (*getCharFunc)(void *), void *data, int nBits);
     void addMapping(CharCode code, char *uStr, int n, int offset);
