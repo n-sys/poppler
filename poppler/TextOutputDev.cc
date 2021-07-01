@@ -2401,7 +2401,7 @@ TextWord *TextWordList::get(int idx)
 // TextPage
 //------------------------------------------------------------------------
 
-TextPage::TextPage(bool rawOrderA, bool discardDiagA, bool discardWfillA, bool discardInvisA, bool discardNonUniA)
+TextPage::TextPage(bool rawOrderA, bool discardDiagA, bool discardWfillA, bool discardInvisA, bool discardNonUniA, bool ignoreFontSzA)
 {
     int rot;
 
@@ -2411,6 +2411,7 @@ TextPage::TextPage(bool rawOrderA, bool discardDiagA, bool discardWfillA, bool d
     discardWfill = discardWfillA;
     discardInvis = discardInvisA;
     discardNonUni = discardNonUniA;
+    ignoreFontSz = ignoreFontSzA;
     curWord = nullptr;
     charPos = 0;
     curFont = nullptr;
@@ -2822,7 +2823,7 @@ void TextPage::addChar(const GfxState *state, double x, double y, double dx, dou
         }
         overlap = fabs(delta) < dupMaxPriDelta * curWord->fontSize && fabs(base - curWord->base) < dupMaxSecDelta * curWord->fontSize;
         wMode = curFont->getWMode();
-        if (overlap || lastCharOverlap || sp < -minDupBreakOverlap * curWord->fontSize || sp > minWordBreakSpace * curWord->fontSize || fabs(base - curWord->base) > 0.5 || curFontSize != curWord->fontSize || wMode != curWord->wMode) {
+        if (overlap || lastCharOverlap || sp < -minDupBreakOverlap * curWord->fontSize || sp > minWordBreakSpace * curWord->fontSize || fabs(base - curWord->base) > 0.5 || ((curFontSize != curWord->fontSize) && !ignoreFontSz) || wMode != curWord->wMode) {
             endWord();
         }
         lastCharOverlap = overlap;
@@ -5600,7 +5601,7 @@ static void TextOutputDev_outputToFile(void *stream, const char *text, int len)
     fwrite(text, 1, len, (FILE *)stream);
 }
 
-TextOutputDev::TextOutputDev(const char *fileName, bool physLayoutA, double fixedPitchA, bool rawOrderA, bool append, bool discardDiagA, bool discardWfillA, bool discardInvisA, bool discardNonUniA)
+TextOutputDev::TextOutputDev(const char *fileName, bool physLayoutA, double fixedPitchA, bool rawOrderA, bool append, bool discardDiagA, bool discardWfillA, bool discardInvisA, bool discardNonUniA, bool ignoreFontSzA)
 {
     text = nullptr;
     physLayout = physLayoutA;
@@ -5610,6 +5611,7 @@ TextOutputDev::TextOutputDev(const char *fileName, bool physLayoutA, double fixe
     discardWfill = discardWfillA;
     discardInvis = discardInvisA;
     discardNonUni = discardNonUniA;
+    ignoreFontSz = ignoreFontSzA;
     doHTML = false;
     textEOL = defaultEndOfLine();
     textPageBreaks = true;
@@ -5638,11 +5640,11 @@ TextOutputDev::TextOutputDev(const char *fileName, bool physLayoutA, double fixe
     }
 
     // set up text object
-    text = new TextPage(rawOrderA, discardDiagA, discardWfillA, discardInvisA, discardNonUniA);
+    text = new TextPage(rawOrderA, discardDiagA, discardWfillA, discardInvisA, discardNonUniA, ignoreFontSzA);
     actualText = new ActualText(text);
 }
 
-TextOutputDev::TextOutputDev(TextOutputFunc func, void *stream, bool physLayoutA, double fixedPitchA, bool rawOrderA, bool discardDiagA, bool discardWfillA, bool discardInvisA, bool discardNonUniA)
+TextOutputDev::TextOutputDev(TextOutputFunc func, void *stream, bool physLayoutA, double fixedPitchA, bool rawOrderA, bool discardDiagA, bool discardWfillA, bool discardInvisA, bool discardNonUniA, bool ignoreFontSzA)
 {
     outputFunc = func;
     outputStream = stream;
@@ -5652,7 +5654,7 @@ TextOutputDev::TextOutputDev(TextOutputFunc func, void *stream, bool physLayoutA
     rawOrder = rawOrderA;
     discardDiag = discardDiagA;
     doHTML = false;
-    text = new TextPage(rawOrderA, discardDiagA, discardWfillA, discardInvisA, discardNonUniA);
+    text = new TextPage(rawOrderA, discardDiagA, discardWfillA, discardInvisA, discardNonUniA, ignoreFontSzA);
     actualText = new ActualText(text);
     textEOL = defaultEndOfLine();
     textPageBreaks = true;

@@ -556,7 +556,7 @@ class POPPLER_PRIVATE_EXPORT TextPage
 {
 public:
     // Constructor.
-    TextPage(bool rawOrderA, bool discardDiagA = false, bool discardWfillA = false, bool discardInvisA = false, bool discardNonUniA = false);
+    TextPage(bool rawOrderA, bool discardDiagA = false, bool discardWfillA = false, bool discardInvisA = false, bool discardNonUniA = false, bool ignoreFontSzA = false);
 
     TextPage(const TextPage &) = delete;
     TextPage &operator=(const TextPage &) = delete;
@@ -677,6 +677,7 @@ private:
     bool discardWfill; // discard chars with white RGB fill
     bool discardInvis; // discard chars using render mode 3 or low fillOpacity
     bool discardNonUni; // discard chars using non Unicode encoding
+    bool ignoreFontSz; // ignore font size when determining word boundary
     bool mergeCombining; // merge when combining and base characters
                          // are drawn on top of each other
 
@@ -766,14 +767,14 @@ public:
     // is maintained.  If <rawOrder> is true, the text is kept in
     // content stream order.  If <discardDiag> is true, diagonal text
     // is removed from output.
-    TextOutputDev(const char *fileName, bool physLayoutA, double fixedPitchA, bool rawOrderA, bool append, bool discardDiagA = false, bool discardWfillA = false, bool discardInvisA = false, bool discardNonUniA = false);
+    TextOutputDev(const char *fileName, bool physLayoutA, double fixedPitchA, bool rawOrderA, bool append, bool discardDiagA = false, bool discardWfillA = false, bool discardInvisA = false, bool discardNonUniA = false, bool ignoreFontAzA = false);
 
     // Create a TextOutputDev which will write to a generic stream.  If
     // <physLayoutA> is true, the original physical layout of the text
     // is maintained.  If <rawOrder> is true, the text is kept in
     // content stream order.  If <discardDiag> is true, diagonal text
     // is removed from output.
-    TextOutputDev(TextOutputFunc func, void *stream, bool physLayoutA, double fixedPitchA, bool rawOrderA, bool discardDiagA = false, bool discardWfillA = false, bool discardInvisA = false, bool discardNonUniA = false);
+    TextOutputDev(TextOutputFunc func, void *stream, bool physLayoutA, double fixedPitchA, bool rawOrderA, bool discardDiagA = false, bool discardWfillA = false, bool discardInvisA = false, bool discardNonUniA = false, bool ignoreFontAzA = false);
 
     // Destructor.
     ~TextOutputDev() override;
@@ -908,6 +909,7 @@ private:
     bool discardWfill;
     bool discardInvis;
     bool discardNonUni;
+    bool ignoreFontSz;
     bool doHTML; // extra processing for HTML conversion
     bool ok; // set up ok?
     bool textPageBreaks; // insert end-of-page markers?
